@@ -42,6 +42,25 @@ describe('config', () => {
       expect((config.mcpServers.test as any).command).toBe('echo');
     });
 
+    test('loads server with sse transport', async () => {
+      const configPath = join(tempDir, 'sse_config.json');
+      await writeFile(
+        configPath,
+        JSON.stringify({
+          mcpServers: {
+            sse: {
+              url: 'http://localhost:3000/sse',
+              transport: 'sse',
+            },
+          },
+        }),
+      );
+
+      const config = await loadConfig(configPath);
+      expect(config.mcpServers.sse).toBeDefined();
+      expect((config.mcpServers.sse as any).transport).toBe('sse');
+    });
+
     test('throws on missing config file', async () => {
       const configPath = join(tempDir, 'nonexistent.json');
       await expect(loadConfig(configPath)).rejects.toThrow('not found');

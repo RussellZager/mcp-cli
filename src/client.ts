@@ -3,6 +3,7 @@
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
@@ -236,10 +237,17 @@ export async function connectToServer(
       },
     );
 
-    let transport: StdioClientTransport | StreamableHTTPClientTransport;
+    let transport:
+      | StdioClientTransport
+      | StreamableHTTPClientTransport
+      | SSEClientTransport;
 
     if (isHttpServer(config)) {
-      transport = createHttpTransport(config);
+      if (config.transport === 'sse') {
+        transport = createSseTransport(config);
+      } else {
+        transport = createHttpTransport(config);
+      }
     } else {
       transport = createStdioTransport(config);
 
@@ -296,6 +304,19 @@ function createHttpTransport(
   const url = new URL(config.url);
 
   return new StreamableHTTPClientTransport(url, {
+    requestInit: {
+      headers: config.headers,
+    },
+  });
+}
+
+/**
+ * Create SSE transport for remote servers
+ */
+function createSseTransport(config: HttpServerConfig): SSEClientTransport {
+  const url = new URL(config.url);
+
+  return new SSEClientTransport(url, {
     requestInit: {
       headers: config.headers,
     },

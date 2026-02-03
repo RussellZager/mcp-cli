@@ -48,6 +48,7 @@ export interface HttpServerConfig extends BaseServerConfig {
   url: string;
   headers?: Record<string, string>;
   timeout?: number;
+  transport?: 'sse';
 }
 
 export type ServerConfig = StdioServerConfig | HttpServerConfig;
