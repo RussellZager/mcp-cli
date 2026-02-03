@@ -10,6 +10,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
   type HttpServerConfig,
   type ServerConfig,
+  type SseServerConfig,
   type StdioServerConfig,
   debug,
   filterTools,
@@ -19,6 +20,7 @@ import {
   getTimeoutMs,
   isDaemonEnabled,
   isHttpServer,
+  isSseServer,
   isToolAllowed,
 } from './config.js';
 import {
@@ -242,12 +244,10 @@ export async function connectToServer(
       | StreamableHTTPClientTransport
       | SSEClientTransport;
 
-    if (isHttpServer(config)) {
-      if (config.transport === 'sse') {
-        transport = createSseTransport(config);
-      } else {
-        transport = createHttpTransport(config);
-      }
+    if (isSseServer(config)) {
+      transport = createSseTransport(config);
+    } else if (isHttpServer(config)) {
+      transport = createHttpTransport(config);
     } else {
       transport = createStdioTransport(config);
 
@@ -277,7 +277,7 @@ export async function connectToServer(
     }
 
     // For successful connections, forward stderr to console
-    if (!isHttpServer(config)) {
+    if (!isHttpServer(config) && !isSseServer(config)) {
       const stderrStream = (transport as StdioClientTransport).stderr;
       if (stderrStream) {
         stderrStream.on('data', (chunk: Buffer) => {
@@ -313,8 +313,13 @@ function createHttpTransport(
 /**
  * Create SSE transport for remote servers
  */
-function createSseTransport(config: HttpServerConfig): SSEClientTransport {
-  const url = new URL(config.url);
+function createSseTransport(config: SseServerConfig): SSEClientTransport {
+  // SSE transport expects the URL to end with /sse
+  let urlStr = config.url;
+  if (!urlStr.endsWith('/sse')) {
+    urlStr = `${urlStr.replace(/\/$/, '')}/sse`;
+  }
+  const url = new URL(urlStr);
 
   return new SSEClientTransport(url, {
     requestInit: {

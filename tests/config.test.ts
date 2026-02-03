@@ -11,6 +11,7 @@ import {
   getServerConfig,
   listServerNames,
   isHttpServer,
+  isSseServer,
   isStdioServer,
 } from '../src/config';
 
@@ -50,7 +51,7 @@ describe('config', () => {
           mcpServers: {
             sse: {
               url: 'http://localhost:3000/sse',
-              transport: 'sse',
+              type: 'sse',
             },
           },
         }),
@@ -58,7 +59,7 @@ describe('config', () => {
 
       const config = await loadConfig(configPath);
       expect(config.mcpServers.sse).toBeDefined();
-      expect((config.mcpServers.sse as any).transport).toBe('sse');
+      expect((config.mcpServers.sse as any).type).toBe('sse');
     });
 
     test('throws on missing config file', async () => {
@@ -252,6 +253,17 @@ describe('config', () => {
     test('isHttpServer identifies HTTP config', () => {
       expect(isHttpServer({ url: 'https://example.com' })).toBe(true);
       expect(isHttpServer({ command: 'echo' })).toBe(false);
+      expect(isHttpServer({ url: 'https://example.com', type: 'sse' })).toBe(
+        false,
+      );
+    });
+
+    test('isSseServer identifies SSE config', () => {
+      expect(isSseServer({ url: 'https://example.com', type: 'sse' })).toBe(
+        true,
+      );
+      expect(isSseServer({ url: 'https://example.com' })).toBe(false);
+      expect(isSseServer({ command: 'echo' })).toBe(false);
     });
 
     test('isStdioServer identifies stdio config', () => {

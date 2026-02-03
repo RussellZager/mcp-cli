@@ -48,10 +48,22 @@ export interface HttpServerConfig extends BaseServerConfig {
   url: string;
   headers?: Record<string, string>;
   timeout?: number;
-  transport?: 'sse';
 }
 
-export type ServerConfig = StdioServerConfig | HttpServerConfig;
+/**
+ * SSE server configuration (remote) - uses SSE transport
+ */
+export interface SseServerConfig extends BaseServerConfig {
+  url: string;
+  headers?: Record<string, string>;
+  timeout?: number;
+  type: 'sse';
+}
+
+export type ServerConfig =
+  | StdioServerConfig
+  | HttpServerConfig
+  | SseServerConfig;
 
 export interface McpServersConfig {
   mcpServers: Record<string, ServerConfig>;
@@ -145,10 +157,17 @@ export function isToolAllowed(toolName: string, config: ServerConfig): boolean {
 }
 
 /**
+ * Check if a server config is SSE-based
+ */
+export function isSseServer(config: ServerConfig): config is SseServerConfig {
+  return 'url' in config && (config as SseServerConfig).type === 'sse';
+}
+
+/**
  * Check if a server config is HTTP-based
  */
 export function isHttpServer(config: ServerConfig): config is HttpServerConfig {
-  return 'url' in config;
+  return 'url' in config && !isSseServer(config);
 }
 
 /**
